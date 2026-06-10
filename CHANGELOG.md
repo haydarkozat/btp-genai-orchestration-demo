@@ -20,8 +20,12 @@ All notable changes to this project are documented here. The format is based on
 - Optional thin FastAPI wrapper (`POST /ask`, `GET /health`) under the `[api]` extra.
 - Test suite (pytest) green in MOCK mode with ≥80% coverage on core logic, plus a
   `@pytest.mark.live` group skipped without credentials.
+- SDK-contract test (`tests/test_live_contract.py`) that builds the LIVE backend's
+  orchestration request object against the installed `sap-ai-sdk-gen` — no network,
+  no credentials — so SDK API drift is caught in CI. Verified against 6.10.0.
 - GitHub Actions CI: ruff lint + format check, strict mypy, pytest (MOCK) on Python
-  3.11 and 3.12.
+  3.11 and 3.12, plus a `sdk-contract` job that installs the `[live]` extra and runs
+  the contract test.
 - README with architecture diagram, SOUVERÄN-KI ↔ BTP/GenAI Hub mapping table, and an
   honest scope note; MIT license; `.env.example`; pinned `uv.lock`.
 

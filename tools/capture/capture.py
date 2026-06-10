@@ -19,8 +19,13 @@ the browser yourself. The saved storage state (cookies/tokens) lives in
 from __future__ import annotations
 
 import argparse
+import contextlib
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING, NoReturn
+
+if TYPE_CHECKING:
+    from playwright import sync_api
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[1]
@@ -32,24 +37,33 @@ SCREENSHOTS_DIR = REPO_ROOT / "docs" / "screenshots"
 _PLACEHOLDER = "REPLACE-ME"
 
 
-def _require_deps() -> tuple:
-    """Import third-party deps lazily with a friendly message if missing."""
+def _setup_hint(missing: str) -> NoReturn:
+    """Exit with a friendly pointer to setup.sh when a dependency is missing."""
+    sys.exit(
+        f"Missing dependency ({missing}). Set the tool up first:\n    cd {HERE}\n    ./setup.sh\n"
+    )
+
+
+def _import_yaml():
     try:
         import yaml
-        from playwright.sync_api import Error as PWError
-        from playwright.sync_api import TimeoutError as PWTimeout
-        from playwright.sync_api import sync_playwright
-    except ImportError as exc:  # pragma: no cover - exercised only before setup
-        sys.exit(
-            f"Missing dependency ({exc.name}). Set the tool up first:\n"
-            f"    cd {HERE}\n"
-            "    ./setup.sh\n"
-        )
-    return yaml, sync_playwright, PWError, PWTimeout
+
+        return yaml
+    except ImportError:  # pragma: no cover - exercised only before setup
+        _setup_hint("PyYAML")
+
+
+def _import_playwright() -> sync_api:
+    try:
+        from playwright import sync_api
+
+        return sync_api
+    except ImportError:  # pragma: no cover - exercised only before setup
+        _setup_hint("playwright")
 
 
 def load_config(path: Path) -> dict:
-    yaml, *_ = _require_deps()
+    yaml = _import_yaml()
     if not path.is_file():
         sys.exit(f"Config not found: {path}")
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -78,7 +92,7 @@ def _apply_masks(page, selectors: list[str]) -> int:
 
 
 def cmd_login(cfg: dict) -> int:
-    _, sync_playwright, _, PWTimeout = _require_deps()
+    pw = _import_playwright()
     login_cfg = cfg.get("login") or {}
     url = login_cfg.get("url")
     if _is_placeholder(url):
@@ -87,7 +101,7 @@ def cmd_login(cfg: dict) -> int:
     AUTH_DIR.mkdir(parents=True, exist_ok=True)
     viewport = _viewport(cfg)
 
-    with sync_playwright() as p:
+    with pw.sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         context = browser.new_context(viewport=viewport)
         page = context.new_page()
@@ -109,7 +123,7 @@ def cmd_login(cfg: dict) -> int:
             try:
                 page.wait_for_selector(ready, timeout=5000)
                 print("Confirmed: logged-in element is present.")
-            except PWTimeout:
+            except pw.TimeoutError:
                 print("Warning: ready_selector not found — saving state anyway.")
 
         context.storage_state(path=str(STATE_PATH))
@@ -121,7 +135,7 @@ def cmd_login(cfg: dict) -> int:
 
 
 def cmd_shoot(cfg: dict, *, headed: bool) -> int:
-    _, sync_playwright, PWError, PWTimeout = _require_deps()
+    pw = _import_playwright()
     if not STATE_PATH.is_file():
         sys.exit("No saved auth state. Run `./capture login` first.")
 
@@ -135,7 +149,7 @@ def cmd_shoot(cfg: dict, *, headed: bool) -> int:
 
     results: list[tuple[str, str, str]] = []
 
-    with sync_playwright() as p:
+    with pw.sync_playwright() as p:
         browser = p.chromium.launch(headless=not headed)
         context = browser.new_context(viewport=viewport, storage_state=str(STATE_PATH))
         page = context.new_page()
@@ -152,10 +166,8 @@ def cmd_shoot(cfg: dict, *, headed: bool) -> int:
             try:
                 page.goto(url, wait_until="domcontentloaded", timeout=timeout)
                 # Best-effort network idle; SPAs may never fully settle, so don't fail on it.
-                try:
+                with contextlib.suppress(pw.TimeoutError):
                     page.wait_for_load_state("networkidle", timeout=timeout)
-                except PWTimeout:
-                    pass
 
                 wait_for = target.get("wait_for")
                 if wait_for:
@@ -168,7 +180,7 @@ def cmd_shoot(cfg: dict, *, headed: bool) -> int:
                 if masked:
                     detail += f"  (masked {masked})"
                 results.append((name, "OK", detail))
-            except (PWTimeout, PWError) as exc:
+            except (pw.TimeoutError, pw.Error) as exc:
                 results.append((name, "FAIL", str(exc).splitlines()[0][:80]))
                 continue
 
@@ -194,15 +206,11 @@ def main(argv: list[str] | None = None) -> int:
         prog="capture",
         description="Capture masked SAP GenAI Hub screenshots into docs/screenshots/.",
     )
-    parser.add_argument(
-        "--config", type=Path, default=DEFAULT_TARGETS, help="Path to targets.yaml"
-    )
+    parser.add_argument("--config", type=Path, default=DEFAULT_TARGETS, help="Path to targets.yaml")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("login", help="Headed manual login; saves auth state.")
     shoot = sub.add_parser("shoot", help="Capture screenshots using saved state.")
-    shoot.add_argument(
-        "--headed", action="store_true", help="Run the capture browser visibly."
-    )
+    shoot.add_argument("--headed", action="store_true", help="Run the capture browser visibly.")
 
     args = parser.parse_args(argv)
     cfg = load_config(args.config)

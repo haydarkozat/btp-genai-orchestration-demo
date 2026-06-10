@@ -26,6 +26,10 @@ coverage.xml
 .env
 *.key
 
+# Screenshot capture: saved login session / cookies (NEVER commit)
+tools/capture/.auth/
+**/*cookies*.json
+
 # OS / editor
 .DS_Store
 .idea/

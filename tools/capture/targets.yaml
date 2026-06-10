@@ -1,0 +1,60 @@
+# Screenshot capture configuration.
+#
+# Fill in the REPLACE-ME values from a live AI Launchpad session in your SAP BTP
+# trial. `capture login` reads `login.url`; `capture shoot` reads `targets`.
+# Anything still containing "REPLACE-ME" is skipped (not failed), so you can fill
+# these in one at a time.
+
+# Base URLs for your trial (for your own reference / copy-paste into target urls).
+base_urls:
+  ai_launchpad: "https://REPLACE-ME-ai-launchpad.<region>.hana.ondemand.com"
+
+# `capture login` opens this URL in a headed browser for manual sign-in.
+login:
+  url: "https://REPLACE-ME-ai-launchpad.<region>.hana.ondemand.com"
+  # Optional: a selector only present once logged in (used to confirm the session).
+  ready_selector: ""
+
+# Screenshot viewport (PNGs are saved at this size).
+viewport:
+  width: 1600
+  height: 900
+
+# Per-navigation/selector time budget in milliseconds.
+timeout_ms: 30000
+
+# One entry per screenshot.
+#   name     : label shown in the summary table
+#   url      : page to visit (must be reachable with the saved session)
+#   wait_for : CSS selector to wait for before shooting (proves the page rendered)
+#   output   : filename written under docs/screenshots/
+#   mask     : selectors hidden (visibility:hidden) before the shot — use this to
+#              hide your email/username in the shell header, tenant ids, etc.
+targets:
+  - name: "AI Launchpad home"
+    url: "https://REPLACE-ME/aic/index.html"
+    wait_for: "body"
+    output: "ai-launchpad.png"
+    mask: []
+    # Example masks (uncomment + adjust to your DOM):
+    # mask:
+    #   - ".sapUShellHeaderTitle"
+    #   - "[id*='userImage']"
+
+  - name: "Orchestration workbook"
+    url: "https://REPLACE-ME/orchestration"
+    wait_for: "body"
+    output: "orchestration.png"
+    mask: []
+
+  - name: "Document grounding"
+    url: "https://REPLACE-ME/grounding"
+    wait_for: "body"
+    output: "grounding.png"
+    mask: []
+
+  - name: "Model playground"
+    url: "https://REPLACE-ME/playground"
+    wait_for: "body"
+    output: "playground.png"
+    mask: []

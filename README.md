@@ -135,11 +135,15 @@ uvicorn btp_genai_orchestration.api:app
 
 ## Evidence / screenshots
 
-Placeholders until live-run screenshots are dropped in (`docs/screenshots/`):
+Real, masked screenshots from a live trial session land in
+[`docs/screenshots/`](docs/screenshots/) (see its
+[evidence index](docs/screenshots/README.md) for which image proves which exercise:
+Launchpad / Orchestration / Grounding).
 
-- `docs/screenshots/ai-launchpad.png` — AI Launchpad showing the GenAI Hub instance.
-- `docs/screenshots/orchestration.png` — an orchestration request/response.
-- `docs/screenshots/grounding.png` — grounding/context injection in action.
+They are produced with [`tools/capture`](tools/capture/) — a small Playwright tool
+that logs in once (manual SAP Universal ID / MFA), then captures each page with PII
+masked. The saved login session is never committed. Placeholders until the images
+are dropped in.
 
 ## Development
 

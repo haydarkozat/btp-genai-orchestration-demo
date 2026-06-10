@@ -1,0 +1,4 @@
+# Pinned for reproducibility. To upgrade: bump the pin, re-run ./setup.sh
+# (which re-runs `playwright install chromium` to match the new version).
+playwright==1.49.1
+PyYAML==6.0.2

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Thin wrapper so you can run `./capture login` / `./capture shoot`.
+set -euo pipefail
+DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ ! -x "$DIR/.venv/bin/python" ]; then
+  echo "Tool not set up yet. Run: $DIR/setup.sh" >&2
+  exit 1
+fi
+exec "$DIR/.venv/bin/python" "$DIR/capture.py" "$@"
